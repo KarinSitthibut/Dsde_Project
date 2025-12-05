@@ -18,8 +18,6 @@ env/
 ENV/
 
 # Jupyter Notebook
-.ipynb_checkpoints/
-*.nbconvert.ipynb
 
 # ----------------------------
 # Data files (อย่าอัป dataset ขึ้น Git)
