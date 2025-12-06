@@ -54,17 +54,17 @@ st.metric("RMSE (log target)", f"{rmse:.4f}")
 st.sidebar.header("Manual single report")
 ts = st.sidebar.text_input("timestamp", "2025-12-05 10:30:00")
 comment = st.sidebar.text_area("comment", "ทางเท้าชำรุด หน้าบ้านเลขที่ 123")
-lon = st.sidebar.number_input("lon", value=100.5018, format="%.6f")
-lat = st.sidebar.number_input("lat", value=13.7563, format="%.6f")
+lon = st.sidebar.number_input("lon", value=100.5000, format="%.6f")
+lat = st.sidebar.number_input("lat", value=13.7500, format="%.6f")
 sub = st.sidebar.text_input("subdistrict", "บางกอกใหญ่")
-typ = st.sidebar.text_input("type", "{repair,urgent}")
+typ = st.sidebar.text_input("type", "{ถนน,ทางเท้า}")
 if st.sidebar.button("Predict single"):
     single_raw = pd.DataFrame([{
         "timestamp": ts, "comment": comment, "lon": lon, "lat": lat,
         "subdistrict": sub, "type": typ
     }])
     # preprocess single row (fits pipeline on the single row)
-    single_X, _ = preprocess_df_for_ml(single_raw)
+    single_X, processor = preprocess_df_for_ml(single_raw)
 
     # align to training columns (fill missing with 0)
     ref = X_train.columns
