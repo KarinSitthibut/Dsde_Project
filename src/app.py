@@ -19,11 +19,9 @@ def load_data():
     })
     df = df.dropna(subset=["latitude", "longitude"])
     
-   
     if "duration_hours" in df.columns:
-        df["fix_duration"] = df["duration_hours"] / 24  
+        df["fix_duration"] = df["duration_hours"] / 24
     else:
-        
         df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
         df["last_activity"] = pd.to_datetime(df["last_activity"], errors="coerce")
         df = df.dropna(subset=["timestamp", "last_activity"])
@@ -35,16 +33,14 @@ def load_data():
     df["district"] = df["district"].fillna("Unknown")
     df["type"] = df["type"].fillna("Unknown")
     df["comment"] = df["comment"].fillna("")
-    return df 
+    return df
 
-# Load Dataset
 data = load_data()
 
 MAX_ROWS = 100000
 if len(data) > MAX_ROWS:
     data = data.sample(MAX_ROWS, random_state=42)
 
-# Sidebar Filters
 st.sidebar.header("Filters")
 
 min_fix = int(data["fix_duration"].min())
@@ -57,43 +53,61 @@ fix_range = st.sidebar.slider(
     value=(min_fix, max_fix)
 )
 
+if "timestamp" in data.columns:
+    data["timestamp"] = pd.to_datetime(data["timestamp"], errors="coerce")
+    min_date = data["timestamp"].min().date()
+    max_date = data["timestamp"].max().date()
+    
+    date_range = st.sidebar.date_input(
+        "Report Date Range",
+        value=(min_date, max_date),
+        min_value=min_date,
+        max_value=max_date
+    )
+    
+    if isinstance(date_range, tuple) and len(date_range) == 2:
+        start_date, end_date = date_range
+    else:
+        start_date = end_date = date_range if not isinstance(date_range, tuple) else date_range[0]
+else:
+    start_date = end_date = None
+
 districts = sorted(data["district"].dropna().unique())
 
-
 districts = [d for d in districts if d != "Unknown"]
-
 
 district_options = ["All Districts"] + districts
 
 selected_option = st.sidebar.selectbox(
     "District",
     district_options,
-    index=0  
+    index=0
 )
-
 
 if selected_option == "All Districts":
     selected_district = districts
 else:
     selected_district = [selected_option]
 
-
 map_style = "road"
 
-bandwidth = 0.006
+bandwidth = 0.01
 
-# Apply sidebar filters
 filtered = data[
     (data["fix_duration"] >= fix_range[0]) &
     (data["fix_duration"] <= fix_range[1]) &
     (data["district"].isin(selected_district))
 ].copy()
 
-# Check if filtered data is empty
+if start_date is not None and end_date is not None:
+    filtered = filtered[
+        (filtered["timestamp"].dt.date >= start_date) &
+        (filtered["timestamp"].dt.date <= end_date)
+    ]
+
 if len(filtered) == 0:
     st.warning("⚠️ No data matches the selected filters")
     st.stop()
-
 
 RENDER_LIMIT = 20000
 map_data = filtered
@@ -101,7 +115,6 @@ map_data = filtered
 if len(map_data) > RENDER_LIMIT:
     map_data = map_data.sample(RENDER_LIMIT, random_state=42)
 
-# Metrics
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -112,7 +125,6 @@ with col2:
 
 with col3:
     st.metric("Issue Types", filtered['type'].nunique())
-
 
 chart_col1, chart_col2 = st.columns(2)
 
@@ -143,7 +155,6 @@ with chart_col2:
     fig_bar.update_layout(showlegend=False, yaxis={'categoryorder':'total ascending'})
     st.plotly_chart(fig_bar, use_container_width=True)
 
-# All Issue Points Map
 st.header("📍 Footpath Issues Map")
 
 point_layer = pdk.Layer(
@@ -167,7 +178,6 @@ st.pydeck_chart(
     )
 )
 
-# KDE Density Map
 st.header("🌡 Density Estimation (KDE)")
 
 try:
@@ -181,17 +191,13 @@ try:
     kde_data = kde_data.copy()
     kde_data["density"] = density
     
-   
     density_range = density.max() - density.min()
     if density_range == 0 or np.isnan(density_range):
-        
         kde_data["density_norm"] = 0.5
     else:
         kde_data["density_norm"] = (density - density.min()) / density_range
     
-    
     kde_viz = kde_data.sample(min(RENDER_LIMIT, len(kde_data)), random_state=42).copy()
-    
     
     kde_viz["color"] = kde_viz["density_norm"].apply(
         lambda x: [int(255*x), int(255*(1-x)), 80, 160]
@@ -219,4 +225,56 @@ try:
     )
 
 except Exception as e:
-    st.error(f"KDE Error: {e}")  
+    st.error(f"KDE Error: {e}")
+
+st.header("📋 Detailed Data Table")
+
+show_rows = st.selectbox("Show rows", [10, 25, 50, 100], index=1)
+
+table_data = filtered.copy()
+if "timestamp" in table_data.columns:
+    table_data = table_data.sort_values(by="timestamp", ascending=False)
+
+table_data = table_data.head(show_rows)
+
+display_columns = {
+    "ticket_id": "Ticket ID",
+    "type": "Issue Type",
+    "comment": "Comment",
+    "address": "Address",
+    "fix_duration": "Days to Fix",
+    "timestamp": "Reported",
+    "last_activity": "Completed"
+}
+
+available_columns = {k: v for k, v in display_columns.items() if k in table_data.columns}
+
+table_display = table_data[list(available_columns.keys())].copy()
+table_display = table_display.rename(columns=available_columns)
+
+if "Days to Fix" in table_display.columns:
+    table_display["Days to Fix"] = table_display["Days to Fix"].round(1)
+
+if "Reported" in table_display.columns:
+    table_display["Reported"] = pd.to_datetime(table_display["Reported"]).dt.strftime('%Y-%m-%d')
+
+if "Completed" in table_display.columns:
+    table_display["Completed"] = pd.to_datetime(table_display["Completed"]).dt.strftime('%Y-%m-%d')
+
+if "Comment" in table_display.columns:
+    table_display["Comment"] = table_display["Comment"].str[:100] + "..."
+
+st.dataframe(
+    table_display,
+    use_container_width=True,
+    height=400,
+    hide_index=True
+)
+
+csv = filtered.to_csv(index=False).encode('utf-8')
+st.download_button(
+    label="📥 Download Full Data as CSV",
+    data=csv,
+    file_name=f"footpath_issues_{datetime.now().strftime('%Y%m%d')}.csv",
+    mime="text/csv",
+)
