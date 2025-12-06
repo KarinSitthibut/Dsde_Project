@@ -1,26 +1,8 @@
-# ----------------------------
-# Python
-# ----------------------------
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.pdb
-*.egg-info/
-.eggs/
-dist/
-build/
-
 # Virtual env
 venv/
 env/
 .venv/
 ENV/
-
-# Jupyter Notebook
-
-# ----------------------------
-# Data files (อย่าอัป dataset ขึ้น Git)
 # ----------------------------
 data/
 *.csv
@@ -33,72 +15,4 @@ data/
 *.gz
 *.json
 *.db
-
-# ถ้ามีไฟล์ sample ให้ whitelist ได้ (ตัวอย่าง)
-# !data/sample_10rows.csv
-
-# ----------------------------
-# Large model files & ML outputs
-# ----------------------------
-models/
-*.h5
-*.hdf5
-*.pkl
-*.pickle
-*.joblib
-*.pt
-*.pth
-*.onnx
-
-# ----------------------------
-# Logs
-# ----------------------------
-logs/
-*.log
-
-# ----------------------------
-# OS files
-# ----------------------------
-.DS_Store
-Thumbs.db
-
-# ----------------------------
-# VSCode & IDE
-# ----------------------------
-.vscode/
-.idea/
-
-# ----------------------------
-# Airflow
-# ----------------------------
-airflow/dags/__pycache__/
-airflow/logs/
-airflow/plugins/__pycache__/
-airflow/airflow.db
-airflow/airflow-webserver.pid
-
-# ----------------------------
-# Spyder / Jupyter / etc.
-# ----------------------------
-.spyproject/
-.jupyter/
-
-# ----------------------------
-# Environment files
-# ----------------------------
 .env
-*.env
-dotenv
-secrets.json
-
-# ----------------------------
-# Power BI (ใหญ่เกิน ไม่ควร push)
-# ----------------------------
-*.pbix
-
-# ----------------------------
-# Misc
-# ----------------------------
-*.bak
-*.swp
-*.tmp
