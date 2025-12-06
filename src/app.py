@@ -12,20 +12,32 @@ st.set_page_config(page_title="Bangkok Footpath Issues Dashboard", layout="wide"
 st.markdown("""
     <style>
     .stApp {
-        background-color: #faf8f3;
+        background-color: #F9F8F6;
     }
     .stMetric {
         background-color: white;
         padding: 20px;
         border-radius: 15px;
         border: 1px solid #e8e4db;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
     [data-testid="stSidebar"] {
-        background-color: #f5e6d3;
+        background-color: #EFE9E3;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.08);
+        border-radius: 0 20px 20px 0;
     }
     [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {
         color: #5c4033;
+    }
+    .js-plotly-plot {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border-radius: 15px;
+        overflow: hidden;
+    }
+    div[data-testid="stDataFrame"] {
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
     </style>
     """, unsafe_allow_html=True)
@@ -162,8 +174,8 @@ with chart_col1:
     )
     fig_fix.update_layout(
         showlegend=False,
-        plot_bgcolor='#faf8f3',
-        paper_bgcolor='#faf8f3'
+        plot_bgcolor='#F9F8F6',
+        paper_bgcolor='#F9F8F6'
     )
     st.plotly_chart(fig_fix, use_container_width=True)
 
@@ -182,8 +194,8 @@ with chart_col2:
     fig_bar.update_layout(
         showlegend=False, 
         yaxis={'categoryorder':'total ascending'},
-        plot_bgcolor='#faf8f3',
-        paper_bgcolor='#faf8f3'
+        plot_bgcolor='#F9F8F6',
+        paper_bgcolor='#F9F8F6'
     )
     st.plotly_chart(fig_bar, use_container_width=True)
 
