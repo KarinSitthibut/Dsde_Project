@@ -7,6 +7,29 @@ from datetime import datetime
 from sklearn.neighbors import KernelDensity
 
 st.set_page_config(page_title="Bangkok Footpath Issues Dashboard", layout="wide")
+
+# Cream theme CSS
+st.markdown("""
+    <style>
+    .stApp {
+        background-color: #faf8f3;
+    }
+    .stMetric {
+        background-color: white;
+        padding: 20px;
+        border-radius: 15px;
+        border: 1px solid #e8e4db;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    [data-testid="stSidebar"] {
+        background-color: #f5e6d3;
+    }
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {
+        color: #5c4033;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 st.title("🚧 Bangkok Footpath Issues Analysis")
 
 @st.cache_data
@@ -91,7 +114,7 @@ else:
 
 map_style = "road"
 
-bandwidth = 0.01
+bandwidth = 0.006
 
 filtered = data[
     (data["fix_duration"] >= fix_range[0]) &
@@ -137,7 +160,11 @@ with chart_col1:
         title="Distribution of Time-to-fix (days)",
         color_discrete_sequence=["#0096FF"]
     )
-    fig_fix.update_layout(showlegend=False)
+    fig_fix.update_layout(
+        showlegend=False,
+        plot_bgcolor='#faf8f3',
+        paper_bgcolor='#faf8f3'
+    )
     st.plotly_chart(fig_fix, use_container_width=True)
 
 with chart_col2:
@@ -152,7 +179,12 @@ with chart_col2:
         color=top_districts.values,
         color_continuous_scale='Reds'
     )
-    fig_bar.update_layout(showlegend=False, yaxis={'categoryorder':'total ascending'})
+    fig_bar.update_layout(
+        showlegend=False, 
+        yaxis={'categoryorder':'total ascending'},
+        plot_bgcolor='#faf8f3',
+        paper_bgcolor='#faf8f3'
+    )
     st.plotly_chart(fig_bar, use_container_width=True)
 
 st.header("📍 Footpath Issues Map")
@@ -175,10 +207,11 @@ st.pydeck_chart(
             zoom=13
         ),
         map_style=map_style
-    )
+    ),
+    height=600
 )
 
-st.header("🌡 Density Estimation (KDE)")
+st.header("🌡 Density Estimation")
 
 try:
     kde_sample_size = min(10000, len(filtered))
@@ -221,7 +254,8 @@ try:
                 zoom=13
             ),
             map_style=map_style
-        )
+        ),
+        height=600
     )
 
 except Exception as e:
