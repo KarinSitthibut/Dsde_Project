@@ -230,7 +230,7 @@ with tab1:
             map_data,
             get_position=["longitude", "latitude"],
             get_color=[0, 150, 255, 160],
-            get_radius=12,
+            get_radius=25,
             pickable=True
         )
 
@@ -272,7 +272,7 @@ with tab1:
                 kde_viz,
                 get_position=["longitude", "latitude"],
                 get_color="color",
-                get_radius=20,
+                get_radius=25,
                 pickable=True
             )
             
@@ -409,21 +409,46 @@ with tab2:
     st.subheader("📈 Actual vs Predicted Duration")
     order = np.argsort(y_test_hours.values)
     
-    # ใช้ Plotly แทน Matplotlib (รองรับภาษาไทยดีกว่า)
-    plot_df = pd.DataFrame({
-        'Sample Index': range(len(order)),
-        'Actual': y_test_hours.values[order],
-        'Predicted': y_pred_hours[order]
-    })
+    # สร้างกราฟด้วย Plotly Graph Objects เพื่อควบคุมสีได้แม่นยำ
+    import plotly.graph_objects as go
     
-    fig_pred = px.line(plot_df, x='Sample Index', y=['Actual', 'Predicted'],
-                       title='Actual vs Predicted Duration (sorted)',
-                       labels={'value': 'Duration (hours)', 'variable': 'Type'})
+    fig_pred = go.Figure()
+    
+    
+    fig_pred.add_trace(go.Scatter(
+        x=list(range(len(order))),
+        y=y_pred_hours[order],
+        mode='lines',
+        name='Predicted',
+        line=dict(color='rgba(99, 110, 250, 0.5)', width=1),
+        fill='tozeroy',
+        fillcolor='rgba(99, 110, 250, 0.3)'
+    ))
+    
+    
+    fig_pred.add_trace(go.Scatter(
+        x=list(range(len(order))),
+        y=y_test_hours.values[order],
+        mode='lines',
+        name='Actual',
+        line=dict(color='rgb(0, 96, 255)', width=2)
+    ))
+    
     fig_pred.update_layout(
+        title='Actual vs Predicted Duration (sorted)',
+        xaxis_title='Sample Index',
+        yaxis_title='Duration (hours)',
         plot_bgcolor='#F9F8F6',
         paper_bgcolor='#F9F8F6',
-        hovermode='x unified'
+        hovermode='x unified',
+        legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=0.01
+        )
     )
+    
     st.plotly_chart(fig_pred, use_container_width=True)
 
     # Single prediction form
