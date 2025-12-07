@@ -16,3 +16,6 @@ data/
 *.json
 *.db
 .env
+# Ignore node_modules folders everywhere
+node_modules/
+**/node_modules/
