@@ -4,7 +4,23 @@ import numpy as np
 import pydeck as pdk
 import plotly.express as px
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import time
+
+
+try:
+    import matplotlib.font_manager as fm
+    
+    thai_fonts = [f.name for f in fm.fontManager.ttflist 
+                  if any(x in f.name.lower() for x in ['thai', 'thonburi', 'arial unicode'])]
+    if thai_fonts:
+        mpl.rcParams['font.family'] = thai_fonts[0]
+    else:
+        # Fallback fonts
+        mpl.rcParams['font.sans-serif'] = ['Arial Unicode MS', 'Thonburi', 'Tahoma', 'DejaVu Sans']
+    mpl.rcParams['axes.unicode_minus'] = False
+except Exception as e:
+    print(f"Warning: Could not set Thai font: {e}")
 from datetime import datetime
 from sklearn.neighbors import KernelDensity
 from sklearn.ensemble import RandomForestRegressor
@@ -91,10 +107,6 @@ def load_data():
 # Load data
 data = load_data()
 
-# Show basic info
-st.sidebar.markdown(f"**Total Records:** {len(data):,}")
-st.sidebar.markdown("---")
-
 # Create tabs
 tab1, tab2 = st.tabs(["📊 Dashboard", "🤖 ML Prediction"])
 
@@ -102,6 +114,7 @@ tab1, tab2 = st.tabs(["📊 Dashboard", "🤖 ML Prediction"])
 with tab1:
     st.sidebar.header("📊 Dashboard Filters")
     
+   
     MAX_ROWS = 100000
     display_data = data.sample(MAX_ROWS, random_state=42) if len(data) > MAX_ROWS else data.copy()
 
@@ -211,6 +224,7 @@ with tab1:
 
         # Map
         st.header("🗺 Footpath Issues Map")
+        
         point_layer = pdk.Layer(
             "ScatterplotLayer",
             map_data,
@@ -226,7 +240,7 @@ with tab1:
                 initial_view_state=pdk.ViewState(
                     latitude=map_data["latitude"].mean(),
                     longitude=map_data["longitude"].mean(),
-                    zoom=13
+                    zoom=12
                 ),
                 map_style="road"
             ),
@@ -235,6 +249,7 @@ with tab1:
 
         # Density Map
         st.header("🌡 Density Estimation")
+        
         try:
             kde_sample_size = min(10000, len(filtered))
             kde_data = filtered.sample(kde_sample_size, random_state=42)
@@ -267,7 +282,7 @@ with tab1:
                     initial_view_state=pdk.ViewState(
                         latitude=kde_data["latitude"].mean(),
                         longitude=kde_data["longitude"].mean(),
-                        zoom=13
+                        zoom=12
                     ),
                     map_style="road"
                 ),
@@ -317,9 +332,10 @@ with tab1:
 
 # ==================== TAB 2: ML PREDICTION ====================
 with tab2:
-    st.sidebar.header("🤖 ML Settings")
-    
     st.header("🤖 Machine Learning Duration Prediction")
+    
+    # ใช้ค่า default สำหรับ Number of Trees
+    N_EST = 100
     
     # Check if duration_hours exists
     if "duration_hours" not in data.columns:
@@ -342,8 +358,6 @@ with tab2:
         st.stop()
     
     st.write(f"**Training dataset size:** {len(ml_data):,} rows")
-    
-    N_EST = st.sidebar.slider("Number of Trees", min_value=50, max_value=200, value=100, step=50, key="ml_n_trees")
 
     # Cached training function
     @st.cache_resource
@@ -394,29 +408,23 @@ with tab2:
     # Plot
     st.subheader("📈 Actual vs Predicted Duration")
     order = np.argsort(y_test_hours.values)
-    fig, ax = plt.subplots(figsize=(10, 4))
-    ax.plot(y_test_hours.values[order], label="Actual", linewidth=2)
-    ax.plot(y_pred_hours[order], label="Predicted", alpha=0.8)
-    ax.set_xlabel("Sample index (sorted by actual duration)")
-    ax.set_ylabel("Duration (hours)")
-    ax.set_title("Actual vs Predicted Duration (sorted)")
-    ax.legend()
-    ax.grid(True)
-    st.pyplot(fig)
-
-    # Feature Importance
-    st.subheader("🎯 Feature Importance (Top 15)")
-    importances = model.feature_importances_
-    indices = np.argsort(importances)[-15:]
     
-    fig2, ax2 = plt.subplots(figsize=(10, 6))
-    ax2.barh(range(len(indices)), importances[indices], color='#0096FF')
-    ax2.set_yticks(range(len(indices)))
-    ax2.set_yticklabels([X_train.columns[i] for i in indices])
-    ax2.set_xlabel('Importance')
-    ax2.set_title('Top 15 Most Important Features')
-    ax2.grid(True, axis='x', alpha=0.3)
-    st.pyplot(fig2)
+    # ใช้ Plotly แทน Matplotlib (รองรับภาษาไทยดีกว่า)
+    plot_df = pd.DataFrame({
+        'Sample Index': range(len(order)),
+        'Actual': y_test_hours.values[order],
+        'Predicted': y_pred_hours[order]
+    })
+    
+    fig_pred = px.line(plot_df, x='Sample Index', y=['Actual', 'Predicted'],
+                       title='Actual vs Predicted Duration (sorted)',
+                       labels={'value': 'Duration (hours)', 'variable': 'Type'})
+    fig_pred.update_layout(
+        plot_bgcolor='#F9F8F6',
+        paper_bgcolor='#F9F8F6',
+        hovermode='x unified'
+    )
+    st.plotly_chart(fig_pred, use_container_width=True)
 
     # Single prediction form
     st.subheader("🔮 Single Report Prediction")
@@ -447,23 +455,23 @@ with tab2:
                 # Preprocess single row
                 single_X, _ = preprocess_df_for_ml(single_raw)
 
-                # Align to training columns
+                # Align to training columns (สร้างเป็น float ตั้งแต่แรก)
                 ref = X_train.columns
-                aligned = pd.DataFrame(0, index=single_X.index, columns=ref)
+                aligned = pd.DataFrame(0.0, index=single_X.index, columns=ref, dtype=float)
                 common = single_X.columns.intersection(ref)
                 if len(common) > 0:
-                    aligned.loc[:, common] = single_X.loc[:, common].values
+                    aligned.loc[:, common] = single_X.loc[:, common].values.astype(float)
 
                 # Fill datetime features
                 try:
                     ts_val = pd.to_datetime(ts)
                     dt = {
-                        'year': ts_val.year, 
-                        'month': ts_val.month, 
-                        'day': ts_val.day,
-                        'weekday': ts_val.weekday(), 
-                        'hour': ts_val.hour, 
-                        'is_weekend': int(ts_val.weekday() >= 5)
+                        'year': float(ts_val.year), 
+                        'month': float(ts_val.month), 
+                        'day': float(ts_val.day),
+                        'weekday': float(ts_val.weekday()), 
+                        'hour': float(ts_val.hour), 
+                        'is_weekend': float(ts_val.weekday() >= 5)
                     }
                     for k, v in dt.items():
                         if k in aligned.columns:
@@ -476,8 +484,6 @@ with tab2:
                     aligned.loc[:, 'lon'] = float(lon)
                 if 'lat' in aligned.columns: 
                     aligned.loc[:, 'lat'] = float(lat)
-
-                aligned = aligned.astype(float)
                 ylog = model.predict(aligned)
                 yhours = float(np.expm1(ylog)[0])
                 ydays = yhours / 24
